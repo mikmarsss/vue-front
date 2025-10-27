@@ -1,18 +1,20 @@
 import axios from 'axios'
 
-const apiClient = axios.create({
-  baseURL: import.meta.env.VUE_APP_API_URL,
+const axiosInstance = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 })
 
-apiClient.interceptors.request.use(
+axiosInstance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem('authToken')
+    const parsedToken = JSON.parse(token)
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      config.headers.Authorization = `Bearer ${parsedToken.accessToken}`
     }
     return config
   },
@@ -21,7 +23,7 @@ apiClient.interceptors.request.use(
   },
 )
 
-apiClient.interceptors.response.use(
+axiosInstance.interceptors.response.use(
   (response) => {
     return response
   },
@@ -34,4 +36,4 @@ apiClient.interceptors.response.use(
   },
 )
 
-export default apiClient
+export default axiosInstance

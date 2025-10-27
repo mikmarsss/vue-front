@@ -2,66 +2,112 @@
     <div className="auth-modal"
         v-show="isLoginModalOpen">
         <div className="auth-container">
-
-
-            <Panel class="border-1">
-                <InputGroup>
+            <div class="card grid grid-cols-1 gap-4">
+                <p class="text-[22px]">{{ authLabelType }}</p>
+                <InputGroup v-if="authLabelType == 'Регистрация'">
                     <InputGroupAddon>
                         <i class="pi pi-user"></i>
                     </InputGroupAddon>
-                    <InputText v-model="text1"
+                    <InputText v-model="username"
                         placeholder="Username" />
                 </InputGroup>
 
                 <InputGroup>
-                    <InputGroupAddon>$</InputGroupAddon>
-                    <InputNumber v-model="number"
-                        placeholder="Price" />
-                    <InputGroupAddon>.00</InputGroupAddon>
-                </InputGroup>
-
-                <InputGroup>
-                    <InputGroupAddon>www</InputGroupAddon>
-                    <InputText v-model="text2"
-                        placeholder="Website" />
+                    <InputGroupAddon>
+                        <i class="pi pi-at"></i>
+                    </InputGroupAddon>
+                    <InputText type="email"
+                        v-model="email"
+                        placeholder="Email"
+                        :invalid="!isValidEmail" />
                 </InputGroup>
 
                 <InputGroup>
                     <InputGroupAddon>
-                        <i class="pi pi-map"></i>
+                        <i class="pi pi-key"></i>
                     </InputGroupAddon>
-                    <Select v-model="selectedCity"
-                        :options="cities"
-                        optionLabel="name"
-                        placeholder="City" />
+                    <InputText :invalid="!isValidPassword"
+                        type="password"
+                        v-model="password"
+                        placeholder="Password" />
                 </InputGroup>
-            </Panel>
+                <Button :disabled="!isAuthButtonDisabled"
+                    :label="authButtonType"
+                    @click="authorize" />
+            </div>
         </div>
     </div>
 </template>
 <script>
-import InputGroup from 'primevue/inputgroup'
-import InputGroupAddon from 'primevue/inputgroupaddon'
+import { useAuthStore } from '@/stores/user';
+
+
 export default {
 
     data() {
         return {
-
-
+            password: null,
+            email: null,
+            username: null,
         }
     },
-    components: { InputGroup, InputGroupAddon },
+    setup() {
+        const authStore = useAuthStore();
+        return { authStore };
+    },
+    components: {},
     props: {
         isLoginModalOpen: {
             type: Boolean,
             default: false,
+        },
+        closeLoginWindow: {
+            type: Function
         }
     },
     computed: {
-
+        authButtonType() {
+            return 'Войти'
+        },
+        authLabelType() {
+            return 'Вход'
+        },
+        isValidPassword() {
+            return this.password && this.password.length >= 6;
+        },
+        isValidEmail() {
+            const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return pattern.test(this.email);
+        },
+        isAuthButtonDisabled() {
+            return this.isValidPassword && this.isValidEmail
+        }
     },
     methods: {
+        async authorize() {
+            const payload = {
+                name: this.username,
+                email: this.email,
+                password: this.password
+            }
+            if (this.authLabelType === "Регистрация") {
+                try {
+                    await this.authStore.registration(payload)
+                    this.$emit('closeLoginWindow')
+                } catch (error) {
+                    console.error('Auth error:', error);
+                }
+            }
+            if (this.authLabelType === "Вход") {
+                try {
+                    await this.authStore.login(payload)
+                    this.$emit('closeLoginWindow')
+                } catch (error) {
+                    console.error('Auth error:', error);
+                }
+            }
 
+        }
     }
 }
 </script>
@@ -69,17 +115,17 @@ export default {
 .auth-modal {
     position: absolute;
     z-index: 10;
-    opacity: 0.7;
     width: 100vw;
     height: 100vh;
     top: 50%;
     left: 50%;
-    background-color: black;
+    background-color: rgba(0, 0, 0, 0.7);
     transform: translate(-50%, -50%);
 }
 
 .auth-container {
     position: absolute;
+    z-index: 12;
     width: 20vw;
     height: 30vh;
     top: 50%;

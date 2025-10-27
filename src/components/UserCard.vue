@@ -6,30 +6,35 @@
         style="width: 100%">
         <template #header>
           <div class="flex items-center gap-2">
-            <Avatar image="https://primefaces.org/cdn/primevue/images/avatar/amyelsner.png"
-              shape="circle" />
-            <span class="font-bold">Amy Elsner</span>
+            <span class="font-bold">{{ authStore.user?.name }}</span>
           </div>
         </template>
         <template #footer>
           <div class="flex justify-between">
             <div class="flex gap-2">
-              <Button label="Мои файлы"
+              <Button label="Все файлы"
                 severity="success"
                 variant="outlined"
                 icon="pi pi-file" />
               <Button label="Фото"
                 severity="secondary"
                 variant="outlined"
-                icon="pi pi-sign-out" />
+                icon="pi pi-images" />
             </div>
             <div class="flex gap-2">
               <Button label="Настройки"
                 severity="secondary"
                 variant="outlined"
                 icon="pi pi-cog" />
-              <Button label="Войти"
+              <Button v-if="!authStore.isAuthenticated"
+                label="Войти"
                 @click="openLoginWindow"
+                severity="success"
+                variant="outlined"
+                icon="pi pi-sign-in" />
+              <Button v-if="authStore.isAuthenticated"
+                label="Выйти"
+                @click="logout"
                 severity="danger"
                 variant="outlined"
                 icon="pi pi-sign-out" />
@@ -38,11 +43,13 @@
         </template>
       </Panel>
     </div>
-    <AuthComponent :isLoginModalOpen="isLoginModalOpen" />
+    <AuthComponent :isLoginModalOpen="isLoginModalOpen"
+      @closeLoginWindow="closeLoginWindow" />
   </div>
 </template>
 
 <script>
+import { useAuthStore } from '@/stores/user';
 import AuthComponent from './AuthComponent.vue';
 export default {
   data() {
@@ -55,14 +62,20 @@ export default {
     AuthComponent
   },
   computed: {
-
+    authStore() {
+      return useAuthStore();
+    }
   },
   methods: {
     openLoginWindow() {
       this.isLoginModalOpen = true
-      console.log(this.isLoginModalOpen)
-    }
-  }
+    },
+    closeLoginWindow() {
+      this.isLoginModalOpen = false
+    },
+    logout() {
+      this.authStore.logout()
+    },
+  },
 }
 </script>
-<style scoped></style>

@@ -1,16 +1,53 @@
 <template>
     <div className="default-container">
         <user-card />
+        <div className="main-container">
+            <div class="w-[100%]">
+                <FileUpload name="files[]"
+                    chooseLabel="Выбрать"
+                    uploadLabel="Загрузить"
+                    cancelLabel="Отменить"
+                    :url="uploadUrl"
+                    @upload="onAdvancedUpload($event)"
+                    :multiple="true"
+                    accept="image/*, .pdf, .doc, .docx"
+                    :withCredentials="true"
+                    :maxFileSize="1000000"
+                    invalidFileSizeMessage="Файл слишком большой"
+                    invalidFileTypeMessage="Недопустимый тип файла"
+                    emptyFileMessage="Файл пустой"
+                    chooseOptionsLabel="Выбрать файлы"
+                    uploadOptionsLabel="Загрузить файлы"
+                    cancelOptionsLabel="Отменить загрузку">
+                    <template #empty>
+                        <span>Переместите файлы</span>
+                    </template>
+                </FileUpload>
+            </div>
+        </div>
         <files-panel />
     </div>
 </template>
 
 <script>
+import { useAuthStore } from '@/stores/user';
 import UserCard from '../../components/UserCard.vue'
 import FilesPanel from './components/FilesPanel.vue';
 export default {
     components: { UserCard, FilesPanel },
+    methods: {
+        onAdvancedUpload() {
 
+        }
+    },
+    computed: {
+        uploadUrl() {
+            return `${import.meta.env.VITE_API_URL}/files/upload/${this.authStore.user?.id}`;
+        },
+        authStore() {
+            return useAuthStore();
+        }
+    }
 }
 </script>
 <style scoped>
