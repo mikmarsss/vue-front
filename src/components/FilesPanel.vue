@@ -1,40 +1,17 @@
 <template>
-  <div className="main-container">
-    <div v-if="authStore.isAuthenticated"
-      class="w-[100%]">
-      <FileUpload name="files[]"
-        chooseLabel="Выбрать"
-        uploadLabel="Загрузить"
-        cancelLabel="Отменить"
-        :url="uploadUrl"
-        @upload="onAdvancedUpload()"
-        :multiple="true"
-        accept="image/*, .pdf, .doc, .docx"
-        :withCredentials="true"
-        :maxFileSize="1000000"
-        invalidFileSizeMessage="Файл слишком большой"
-        invalidFileTypeMessage="Недопустимый тип файла"
-        emptyFileMessage="Файл пустой"
-        chooseOptionsLabel="Выбрать файлы"
-        uploadOptionsLabel="Загрузить файлы"
-        cancelOptionsLabel="Отменить загрузку">
-        <template #empty>
-          <span>Переместите файлы</span>
-        </template>
-      </FileUpload>
-    </div>
+  <div class="mt-[10px]">
     <Panel toggleable
       v-if="authStore.isAuthenticated"
       style="width: 100%">
       <template #header>
         <div class="flex items-center gap-2">
-          <span class="font-bold">Мои файлы</span>
+          <span class="font-bold">Все файлы</span>
         </div>
       </template>
       <template #footer>
         <div class="flex flex-wrap gap-[10px]">
           <Card style="width: 15rem; overflow: hidden"
-            v-for="file in filteredFiles"
+            v-for="file in paginatedFiles"
             :key="file.id">
             <template #header>
               <div class="object-cover h-[100px] flex justify-center">
@@ -48,7 +25,11 @@
 
             </template>
             <template #title>A{{ file.name }}</template>
-            <template #subtitle>{{ fileSize(file.size) }}</template>
+            <template #subtitle>
+              <div>
+                {{ fileSize(file.size) }}
+              </div>
+            </template>
             <template #footer>
               <div class="flex gap-4 mt-1">
                 <Button label="Удалить"
@@ -65,29 +46,36 @@
         </div>
       </template>
     </Panel>
+    <Paginator v-if="allFiles.length > 0"
+      :rows="10"
+      :totalRecords="allFiles.length"
+      @page="onPageChange"></Paginator>
   </div>
 </template>
 
 <script>
-import FilesService from '@/services/filesService';
 import { useAuthStore } from '@/stores/user';
 import { useFileStore } from '@/stores/fileStore';
+import FilesService from '@/services/filesService';
+
 export default {
   data() {
     return {
-      userFiles: [],
+      allFiles: [],
+      currentPage: 1
     }
   },
+  props: ['Files', 'RefreshFiles'],
   methods: {
-    async getAllUserFiles() {
-      FilesService.getAllUserFiles(this.authStore.user.id).then((response) => {
-        this.userFiles = response.data
-      }).catch((error) => {
-        console.log(error)
-      }).finally(() => { })
-    },
     filePreview(file) {
-      return `${import.meta.env.VITE_API_URL_STATIC}/${file.file}`
+      return `${import.meta.env.VITE_API_URL_STATIC}/${file.file ?? file.fileName}`
+    },
+    fileSize(size) {
+      return `${(size / 1024).toFixed(2)} Кб`
+    },
+    onPageChange(event) {
+      this.currentPage = event.page + 1;
+      this.paginatedFiles(this.currentPage);
     },
     async deleteFile(fileId) {
       FilesService.deleteUserFile(fileId).then(() => {
@@ -97,7 +85,7 @@ export default {
           detail: 'Файл успешно удален!',
           life: 3000,
         })
-        this.getAllUserFiles()
+        this.RefreshFiles()
       }).catch((error) => {
         console.log(error)
       }).finally(() => { })
@@ -143,61 +131,58 @@ export default {
         console.log(error)
       }).finally(() => { })
     },
-
-    getFileNameFromHeaders(contentDisposition) {
-      if (!contentDisposition) return null;
-
-      const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-      const matches = filenameRegex.exec(contentDisposition);
-
-      if (matches != null && matches[1]) {
-        return matches[1].replace(/['"]/g, '');
-      }
-
-      return null;
-    },
-    fileSize(size) {
-      return `${(size / 1024).toFixed(2)} Кб`
-    },
-
   },
   computed: {
     authStore() {
       return useAuthStore();
     },
+    paginatedFiles() {
+      console.log(this.currentPage)
+      const startIndex = (this.currentPage - 1) * 10
+      const endIndex = startIndex + 10
+      return this.filteredFiles.slice(startIndex, endIndex)
+    },
     fileStore() {
       return useFileStore();
     },
-    uploadUrl() {
-      return `${import.meta.env.VITE_API_URL}/files/upload/${this.authStore.user?.id}`;
-    },
     filteredFiles() {
+      let filtered = this.allFiles;
       if (this.fileStore.activeFilter === 'image') {
-        return this.userFiles.filter(file => file.contentType === 'image')
+        filtered = this.allFiles.filter(file => file.contentType === 'image')
       }
       if (this.fileStore.activeFilter === 'document') {
-        return this.userFiles.filter(file => file.contentType === 'document')
+        filtered = this.allFiles.filter(file => file.contentType === 'document')
       }
-      return this.userFiles
-    }
+      if (this.fileStore.fileSizeFrom !== null || this.fileStore.fileSizeTo !== null) {
+        filtered = filtered.filter((file) => {
+          const fileSize = file.size || 0;
 
-  },
-  async beforeMount() {
-    if (this.authStore.user) {
-      await this.getAllUserFiles();
-    } else {
-      this.$watch(
-        () => this.authStore.user,
-        (user) => {
-          if (user) {
-            this.getAllUserFiles();
+          let fromCondition = true;
+          let toCondition = true;
+
+          if (this.fileStore.fileSizeFrom !== null) {
+            fromCondition = fileSize >= Number(this.fileStore.fileSizeFrom);
           }
-        },
-        { immediate: true }
-      );
+
+          if (this.fileStore.fileSizeTo !== null) {
+            toCondition = fileSize <= Number(this.fileStore.fileSizeTo);
+          }
+
+          return fromCondition && toCondition;
+        });
+      }
+      return filtered
+    },
+  },
+  watch: {
+    Files: {
+      handler() {
+        console.log(this.Files)
+        this.allFiles = this.Files
+      },
+      deep: true,
+      immediate: true
     }
   }
 }
 </script>
-
-<style scoped></style>

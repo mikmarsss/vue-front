@@ -41,7 +41,6 @@
 <script>
 import { useAuthStore } from '@/stores/user';
 
-
 export default {
 
     data() {
@@ -93,6 +92,12 @@ export default {
             if (this.authLabelType === "Регистрация") {
                 try {
                     await this.authStore.registration(payload)
+                    this.$toast.add({
+                        severity: 'success',
+                        summary: 'Успешная регистрация',
+                        detail: 'Вы успешно зарегистрировались в системе!',
+                        life: 3000,
+                    })
                     this.$emit('closeLoginWindow')
                 } catch (error) {
                     console.error('Auth error:', error);
@@ -101,6 +106,12 @@ export default {
             if (this.authLabelType === "Вход") {
                 try {
                     await this.authStore.login(payload)
+                    this.$toast.add({
+                        severity: 'success',
+                        summary: 'Успешный вход',
+                        detail: 'Вы успешно вошли в систему!',
+                        life: 3000,
+                    })
                     this.$emit('closeLoginWindow')
                 } catch (error) {
                     console.error('Auth error:', error);

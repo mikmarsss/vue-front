@@ -6,6 +6,7 @@ export const useAuthStore = defineStore('auth', {
     user: null,
     token: localStorage.getItem('authToken') || null,
     isAuthenticated: !!localStorage.getItem('authToken'),
+    isAdmin: false,
     loading: false,
     error: null,
   }),
@@ -29,8 +30,11 @@ export const useAuthStore = defineStore('auth', {
         this.token = response.data.accessToken
         this.user = response.data.user
         this.isAuthenticated = true
-
+        if (this.user.role === 'Admin') {
+          this.isAdmin = true
+        }
         localStorage.setItem('authToken', JSON.stringify(response.data.accessToken))
+        localStorage.setItem('user', JSON.stringify(response.data.user))
 
         return response
       } catch (error) {
@@ -51,8 +55,11 @@ export const useAuthStore = defineStore('auth', {
         this.token = response.data.accessToken
         this.user = response.data.user
         this.isAuthenticated = true
-
+        if (this.user.role === 'Admin') {
+          this.isAdmin = true
+        }
         localStorage.setItem('authToken', JSON.stringify(response.data.accessToken))
+        localStorage.setItem('user', JSON.stringify(response.data.user))
 
         return response
       } catch (error) {
@@ -70,7 +77,11 @@ export const useAuthStore = defineStore('auth', {
         this.token = null
         this.user = null
         this.isAuthenticated = false
+        if (this.user.role === 'Admin') {
+          this.isAdmin = false
+        }
         localStorage.removeItem('authToken')
+        localStorage.removeItem('user')
       } catch (error) {
         this.error = error.message
         throw error
@@ -89,11 +100,15 @@ export const useAuthStore = defineStore('auth', {
         this.token = response.data.accessToken
         this.user = response.data.user
         this.isAuthenticated = true
-        console.log(response)
+        if (this.user.role === 'Admin') {
+          this.isAdmin = true
+        }
         localStorage.setItem('authToken', JSON.stringify(response.data.accessToken))
-
+        localStorage.setItem('user', JSON.stringify(response.data.user))
         return response
       } catch (error) {
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('user')
         this.error = error.message
         throw error
       } finally {
