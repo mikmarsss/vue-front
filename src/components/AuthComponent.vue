@@ -3,8 +3,8 @@
         v-show="isLoginModalOpen">
         <div className="auth-container">
             <div class="card grid grid-cols-1 gap-4">
-                <p class="text-[22px]">{{ authLabelType }}</p>
-                <InputGroup v-if="authLabelType == 'Регистрация'">
+                <p class="text-[22px]">{{ authType }}</p>
+                <InputGroup v-if="authType == 'Регистрация'">
                     <InputGroupAddon>
                         <i class="pi pi-user"></i>
                     </InputGroupAddon>
@@ -34,6 +34,10 @@
                 <Button :disabled="!isAuthButtonDisabled"
                     :label="authButtonType"
                     @click="authorize" />
+                <div class="cursor-pointer"
+                    @click="authSwitcher(authType == 'Регистрация' ? 'Вход' : 'Регистрация')">
+                    {{ authType == 'Регистрация' ? 'Вход' : 'Регистрация' }}
+                </div>
             </div>
         </div>
     </div>
@@ -48,7 +52,9 @@ export default {
             password: null,
             email: null,
             username: null,
+            authType: 'Вход'
         }
+
     },
     setup() {
         const authStore = useAuthStore();
@@ -66,10 +72,7 @@ export default {
     },
     computed: {
         authButtonType() {
-            return 'Войти'
-        },
-        authLabelType() {
-            return 'Вход'
+            return this.authType == 'Регистрация' ? 'Зарегистрироваться' : 'Войти'
         },
         isValidPassword() {
             return this.password && this.password.length >= 6;
@@ -83,13 +86,16 @@ export default {
         }
     },
     methods: {
+        authSwitcher(type) {
+            this.authType = type
+        },
         async authorize() {
             const payload = {
                 name: this.username,
                 email: this.email,
                 password: this.password
             }
-            if (this.authLabelType === "Регистрация") {
+            if (this.authType === "Регистрация") {
                 try {
                     await this.authStore.registration(payload)
                     this.$toast.add({
@@ -103,7 +109,7 @@ export default {
                     console.error('Auth error:', error);
                 }
             }
-            if (this.authLabelType === "Вход") {
+            if (this.authType === "Вход") {
                 try {
                     await this.authStore.login(payload)
                     this.$toast.add({
